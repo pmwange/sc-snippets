@@ -1,10 +1,11 @@
 <?php
 /**
- * Custom Snippets — main file (like functions.php)
+ * Sugar Snippets — main file (like functions.php)
  *
  * Add your hooks, filters, and custom code here. This file is loaded when
- * the Custom Snippets plugin is active. You can also add separate .php files
- * in the snippets/ folder and they will be loaded automatically.
+ * the Sugar Snippets plugin is active and this snippet is enabled in
+ * Settings → Sugar Snippets. You can also add separate .php files in the
+ * snippets/ folder and enable/disable them from the same page.
  *
  * Examples:
  *
