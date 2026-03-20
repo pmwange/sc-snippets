@@ -6,7 +6,6 @@
  * instance URLs we use the recurring post ID (event->object_id) so the favorite
  * applies to the series. The favorites plugin usually includes the count in the button markup.
  */
-
 defined( 'ABSPATH' ) || exit;
 function sc_snippets_get_current_event() {
 	$result = array(
