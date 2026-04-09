@@ -4,7 +4,7 @@
  * Plugin URI:        https://github.com/pmwange/sc-snippets
  * Description:       Add custom PHP snippets (like functions.php). Enable or disable each snippet from the settings page.
  * Author:            Custom
- * Version:           1.1.0
+ * Version:           1.2.0
  * Text Domain:       sugar-snippets
  * Requires PHP:      7.4
  */
@@ -12,7 +12,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'SUGAR_SNIPPETS_VERSION' ) ) {
-	define( 'SUGAR_SNIPPETS_VERSION', '1.1.0' );
+	define( 'SUGAR_SNIPPETS_VERSION', '1.2.0' );
 }
 if ( ! defined( 'SUGAR_SNIPPETS_FILE' ) ) {
 	define( 'SUGAR_SNIPPETS_FILE', __FILE__ );
@@ -24,11 +24,15 @@ if ( ! defined( 'SUGAR_SNIPPETS_DIR' ) ) {
 /**
  * Get list of available snippet keys and file paths.
  *
+ * Scans the snippets/ directory recursively. Keys for top-level files are
+ * the bare filename (e.g. "custom-event-excerpt"). Keys for files inside
+ * subdirectories use a relative path (e.g. "my-folder/my-snippet").
+ *
  * @return array<string, string> Map of snippet_key => absolute file path.
  */
 function sugar_snippets_get_available() {
-	$dir   = SUGAR_SNIPPETS_DIR;
-	$list  = array();
+	$dir  = SUGAR_SNIPPETS_DIR;
+	$list = array();
 
 	$main_file = $dir . 'snippets.php';
 	if ( is_readable( $main_file ) ) {
@@ -37,18 +41,32 @@ function sugar_snippets_get_available() {
 
 	$snippets_folder = $dir . 'snippets';
 	if ( is_dir( $snippets_folder ) ) {
-		$files = glob( $snippets_folder . '/*.php' );
-		if ( is_array( $files ) ) {
-			foreach ( $files as $file ) {
-				if ( is_readable( $file ) ) {
-					$key = basename( $file, '.php' );
-					$list[ $key ] = $file;
-				}
+		$iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $snippets_folder, RecursiveDirectoryIterator::SKIP_DOTS ),
+			RecursiveIteratorIterator::SELF_FIRST
+		);
+
+		foreach ( $iterator as $file ) {
+			if ( $file->isFile() && $file->getExtension() === 'php' && $file->isReadable() ) {
+				// Build a key relative to the snippets/ folder, without the .php extension.
+				$relative = ltrim( str_replace( '\\', '/', substr( $file->getPathname(), strlen( $snippets_folder ) ) ), '/' );
+				$key      = preg_replace( '/\.php$/', '', $relative );
+				$list[ $key ] = $file->getPathname();
 			}
 		}
 	}
 
 	return $list;
+}
+
+/**
+ * Check whether a snippet key belongs to a subfolder.
+ *
+ * @param string $key Snippet key.
+ * @return bool
+ */
+function sugar_snippets_is_subfolder_snippet( $key ) {
+	return strpos( $key, '/' ) !== false;
 }
 
 /**
@@ -71,9 +89,12 @@ add_action( 'plugins_loaded', function () {
 	$available = sugar_snippets_get_available();
 	$enabled   = sugar_snippets_get_enabled();
 
-	// If no preference saved yet, enable all (backwards compatible).
+	// If no preference saved yet, enable only top-level snippets (backwards compatible).
+	// Subfolder snippets are opt-in and default to disabled.
 	if ( empty( $enabled ) ) {
-		$enabled = array_keys( $available );
+		$enabled = array_filter( array_keys( $available ), function ( $key ) {
+			return ! sugar_snippets_is_subfolder_snippet( $key );
+		} );
 	}
 
 	foreach ( $enabled as $key ) {

@@ -23,7 +23,7 @@ add_filter( 'get_the_excerpt', function ( $excerpt, $post ) {
 	//
 	// 1. Prepend the event start date:
 	//    $date    = date_i18n( get_option( 'date_format' ), strtotime( $event->start ) );
-	   $excerpt = $date . ' — ' . $excerpt;
+	//    $excerpt = $date . ' — ' . $excerpt;
 	//
 	// 2. Replace the excerpt entirely with a custom string:
 	   $excerpt = 'Custom text for: ' . $event->title;
