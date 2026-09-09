@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_filter(
-	'sugar_calendar_shortcodes_modern_shortcodes_attributes_sugarcalendar-events-list',
+	'sugar_calendar_shortcodes_modern_shortcodes_attributes_sugarcalendar_events_list',
 	function ( $block_attributes, $shortcode_attributes ) {
 
 		// Only act when the raw shortcode had a `tags` value.
