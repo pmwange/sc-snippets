@@ -1,36 +1,44 @@
 <?php
 /**
- * Override the excerpt for Sugar Calendar events.
+ * Customize the excerpt Sugar Calendar shows for an event.
  *
- * Hooks into get_the_excerpt to modify the output whenever WordPress
- * retrieves an excerpt for a Sugar Calendar event post type.
+ * Uses the plugin's own event-excerpt filter (`sugar_calendar_helpers_get_event_excerpt`,
+ * since 3.11.0), so it applies wherever Sugar Calendar prints an event description and
+ * only ever to events.
+ *
+ * Was previously hooked to `get_the_excerpt`, which was wrong twice over: core builds event
+ * descriptions through Helpers::get_event_excerpt() rather than get_the_excerpt(), so the old
+ * version changed nothing that Sugar Calendar renders, and its `if ( ! $event )` guard never
+ * fired (an empty Event object is truthy), so any uncommented example also rewrote the
+ * excerpt of every blog post on the site.
+ *
+ * Ships ACTIVE: it prepends the event's start date. Swap the body for what you need.
  */
 defined( 'ABSPATH' ) || exit;
 
-add_filter( 'get_the_excerpt', function ( $excerpt, $post ) {
+add_filter( 'sugar_calendar_helpers_get_event_excerpt', function ( $excerpt, $event_object_id ) {
 
-	if ( ! function_exists( 'sugar_calendar_get_event_by_object' ) ) {
+	$event = sugar_calendar_get_event_by_object(
+		$event_object_id,
+		'post',
+		array( 'object_subtype' => get_post_type( $event_object_id ) )
+	);
+
+	// An empty Event object is truthy, so check the id.
+	if ( empty( $event->id ) ) {
 		return $excerpt;
 	}
 
-	$event = sugar_calendar_get_event_by_object( $post->ID, 'post' );
+	// Prepend the start date.
+	$date = date_i18n( get_option( 'date_format' ), strtotime( $event->start ) );
 
-	if ( ! $event ) {
-		return $excerpt;
-	}
+	return $date . ': ' . $excerpt;
 
-	// Modify the excerpt here. Examples:
+	// Other things you might do instead of the two lines above:
 	//
-	// 1. Prepend the event start date:
-	//    $date    = date_i18n( get_option( 'date_format' ), strtotime( $event->start ) );
-	//    $excerpt = $date . ' — ' . $excerpt;
+	// Replace the excerpt entirely:
+	//    return 'Join us for ' . $event->title;
 	//
-	// 2. Replace the excerpt entirely with a custom string:
-	   $excerpt = 'Custom text for: ' . $event->title;
-	//
-	// 3. Trim to a specific word count:
-	//    $excerpt = wp_trim_words( $event->content, 20, '...' );
-
-	return $excerpt;
-
+	// Trim the event content to a word count:
+	//    return wp_trim_words( $event->content, 20, '...' );
 }, 10, 2 );
