@@ -82,7 +82,8 @@ function sc_snippet_card_layout_remove_default( $speaker_data ) {
 			if (
 				is_array( $cb['function'] )
 				&& is_object( $cb['function'][0] )
-				&& str_ends_with( get_class( $cb['function'][0] ), 'Singular' )
+				// substr() rather than str_ends_with(), which needs PHP 8.
+				&& substr( get_class( $cb['function'][0] ), -8 ) === 'Singular'
 				&& $cb['function'][1] === 'speaker_details'
 			) {
 				unset( $callbacks[ $id ] );
