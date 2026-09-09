@@ -51,10 +51,19 @@ function sc_snippets_get_current_event() {
 			function_exists( 'sugar_calendar_format_date_i18n' ) ? sugar_calendar_format_date_i18n( 'F j, Y', $result['event']->start ) : date_i18n( 'F j, Y', strtotime( $result['event']->start ) )
 		);
 	} else {
-		// Normal event or parent recurring event page.
+		// Normal event, or the parent page of a recurring event.
 		$post_id = get_the_ID();
-		$event   = sugar_calendar_get_event_by_object( $post_id, 'post' );
-		if ( $event ) {
+
+		// object_subtype has to be passed. Without it the lookup defaults to
+		// sc_event, and a recurring parent (sc_recurring_event) comes back as an
+		// empty Event object that is still truthy, hence the ->id check below.
+		$event = sugar_calendar_get_event_by_object(
+			$post_id,
+			'post',
+			array( 'object_subtype' => get_post_type( $post_id ) )
+		);
+
+		if ( ! empty( $event->id ) ) {
 			$result['event'] = $event;
 			$result['title'] = $event->title;
 		}

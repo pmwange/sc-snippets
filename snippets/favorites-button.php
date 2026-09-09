@@ -5,9 +5,13 @@
  * Outputs the button only if get_favorites_button() exists. On recurring event
  * instance URLs we use the recurring post ID (event->object_id) so the favorite
  * applies to the series. The favorites plugin usually includes the count in the button markup.
+ *
+ * The helpers below carry a fav_ prefix because recurring-event-helper.php declares
+ * same-named helpers with a different get_event_post_id() body; unprefixed, whichever
+ * snippet loaded second would fatal on redeclare.
  */
 defined( 'ABSPATH' ) || exit;
-function sc_snippets_get_current_event() {
+function sc_snippets_fav_get_current_event() {
 	$result = array(
 		'event'         => null,
 		'parent_event'  => null,
@@ -36,10 +40,19 @@ function sc_snippets_get_current_event() {
 			function_exists( 'sugar_calendar_format_date_i18n' ) ? sugar_calendar_format_date_i18n( 'F j, Y', $result['event']->start ) : date_i18n( 'F j, Y', strtotime( $result['event']->start ) )
 		);
 	} else {
-		// Normal event or parent recurring event page.
+		// Normal event, or the parent page of a recurring event.
 		$post_id = get_the_ID();
-		$event   = sugar_calendar_get_event_by_object( $post_id, 'post' );
-		if ( $event ) {
+
+		// object_subtype has to be passed. Without it the lookup defaults to
+		// sc_event, and a recurring parent (sc_recurring_event) comes back as an
+		// empty Event object that is still truthy, hence the ->id check below.
+		$event = sugar_calendar_get_event_by_object(
+			$post_id,
+			'post',
+			array( 'object_subtype' => get_post_type( $post_id ) )
+		);
+
+		if ( ! empty( $event->id ) ) {
 			$result['event'] = $event;
 			$result['title'] = $event->title;
 		}
@@ -47,8 +60,8 @@ function sc_snippets_get_current_event() {
 
 	return $result;
 }
-function sc_snippets_get_event_post_id() {
-	$data = sc_snippets_get_current_event();
+function sc_snippets_fav_get_event_post_id() {
+	$data = sc_snippets_fav_get_current_event();
 
 	if ( ! empty( $data['is_occurrence'] ) ) {
 		if (
@@ -91,8 +104,8 @@ add_filter( 'the_content', function ( $content ) {
 	}
 
 	$post_id = get_the_ID();
-	if ( function_exists( 'sc_snippets_get_event_post_id' ) ) {
-		$event_post_id = sc_snippets_get_event_post_id();
+	if ( function_exists( 'sc_snippets_fav_get_event_post_id' ) ) {
+		$event_post_id = sc_snippets_fav_get_event_post_id();
 		if ( $event_post_id > 0 ) {
 			$post_id = $event_post_id;
 		}
